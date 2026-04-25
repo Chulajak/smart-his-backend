@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const mongoose = require('mongoose');
+const Patient = require('./models/Patient')
 require('dotenv').config();
 
 // 1. สร้างตัวจัดการเซิร์ฟเวอร์
@@ -23,19 +24,28 @@ app.get('/', (req, res) => {
   res.send('<h1>ยินดีต้อนรับสู่ Smart HIS Backend API! 🚀</h1>');
 });
 
-// 3. สร้าง Route (ช่องทางรับออเดอร์ GET)
-app.get('/api/patients', (req, res) => {
-  // สมมติว่านี่คือข้อมูลที่ดึงมาจากฐานข้อมูล (เดี๋ยวเราค่อยต่อ Database จริงวันหลัง)
-  const mockPatients = [
-    { id: 1, name: "สมชาย ใจดี", email: "somchai@email.com", phone: "081-111-1111" },
-    { id: 2, name: "สมหญิง รักเรียน", email: "somying@email.com", phone: "082-222-2222" }
-  ];
-  
-  // ส่งข้อมูลกลับไปให้คนที่เรียก (React) ในรูปแบบ JSON
-  res.json(mockPatients);
-});
+// 3. API ดึงข้อมูลผู้ป่วยทั้งหมด (GET)
+app.get('/api/patients', async (req, res) => {
+  try {
+    const patients = await Patient.find(); // สั่งให้ไปหาข้อมูลทั้งหมดใน MongoDB
+    res.json(patients); // ส่งกลับไปให้ React
+  } catch (error) {
+    res.status(500).json({ message: "เกิดข้อผิดพลาดในการดึงข้อมูล" });
+  }
+}); 
 
-// 4. สั่งให้เซิร์ฟเวอร์เปิดทำการ
+// 4. API เพิ่มข้อมูลผู้ป่วยใหม่ (POST)
+app.post('/api/patients', async (req, res) => {
+  try {
+    const newPatient = new Patient(req.body); // เอาข้อมูลที่ React ส่งมา (req.body) ไปใส่แม่พิมพ์
+    const savedPatient = await newPatient.save(); // สั่งเซฟลง MongoDB
+    res.status(201).json(savedPatient); // ส่งข้อมูลที่เซฟสำเร็จกลับไปยืนยัน
+  } catch (error) {
+    res.status(400).json({ message: "ข้อมูลไม่ถูกต้อง กรุณาตรวจสอบ" });
+  }
+})
+
+// 5. สั่งให้เซิร์ฟเวอร์เปิดทำการ
 app.listen(PORT, () => {
   console.log(`🚀 API Server เปิดทำงานแล้วที่ http://localhost:${PORT}`);
 });
