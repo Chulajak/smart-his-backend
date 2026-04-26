@@ -45,7 +45,18 @@ app.post('/api/patients', async (req, res) => {
   }
 })
 
-// 5. สั่งให้เซิร์ฟเวอร์เปิดทำการ
+// 5. API ลบข้อมูลผู้ป่วย (DELETE)
+app.delete('/api/patients/:id', async (req, res) => {
+  try {
+    const patientId = req.params.id; // รับรหัส _id ที่หน้าบ้านส่งมาผ่าน URL
+    await Patient.findByIdAndDelete(patientId); // สั่ง Mongoose ให้ไปตามหาและลบทิ้ง
+    res.json({ message: "ลบข้อมูลผู้ป่วยออกจากระบบเรียบร้อย" }); // ส่งข้อความกลับไปบอกว่าลบเสร็จแล้ว
+  } catch (error) {
+    res.status(500).json({ message: "เกิดข้อผิดพลาดในการลบข้อมูล" });
+  }
+})
+
+// 6. สั่งให้เซิร์ฟเวอร์เปิดทำการ
 app.listen(PORT, () => {
   console.log(`🚀 API Server เปิดทำงานแล้วที่ http://localhost:${PORT}`);
 });
