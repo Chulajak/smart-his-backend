@@ -56,7 +56,22 @@ app.delete('/api/patients/:id', async (req, res) => {
   }
 })
 
-// 6. สั่งให้เซิร์ฟเวอร์เปิดทำการ
+// 6. API แก้ไขข้อมูลผู้ป่วย (PUT)
+app.put('/api/patients/:id', async (req, res) => {
+  try {
+    const patientId = req.params.id; // ดึงรหัส _id จาก URL
+    const updateData = req.body; // ดึงข้อมูลชุดใหม่ที่ส่งมาจาก React
+
+    // สั่ง Mongoose ให้หาคนที่มี id ตรงกัน แล้วเอา updateData ไปทับ
+    // { new: true } คือคำสั่งบังคับให้ Mongoose ส่งข้อมูล "เวอร์ชันใหม่ที่แก้เสร็จแล้ว" กลับมาให้เรา
+    const updatedPatient = await Patient.findByIdAndUpdate(patientId, updateData, { new: true });
+    res.json(updatedPatient); // ส่งข้อมูลใหม่กลับไปให้ React
+  } catch (error) {
+    res.status(500).json({ message: "เกิดข้อผิดพลาดในการอัปเดตข้อมูล" });
+  }
+})
+
+// 7. สั่งให้เซิร์ฟเวอร์เปิดทำการ
 app.listen(PORT, () => {
   console.log(`🚀 API Server เปิดทำงานแล้วที่ http://localhost:${PORT}`);
 });
