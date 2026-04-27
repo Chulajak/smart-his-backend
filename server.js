@@ -1,7 +1,10 @@
 const express = require('express');
 const cors = require('cors');
 const mongoose = require('mongoose');
-const Patient = require('./models/Patient')
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
+const Patient = require('./models/Patient');
+const User = require('./models/User')
 require('dotenv').config();
 
 // 1. สร้างตัวจัดการเซิร์ฟเวอร์
@@ -64,7 +67,7 @@ app.put('/api/patients/:id', async (req, res) => {
 
     // สั่ง Mongoose ให้หาคนที่มี id ตรงกัน แล้วเอา updateData ไปทับ
     // { new: true } คือคำสั่งบังคับให้ Mongoose ส่งข้อมูล "เวอร์ชันใหม่ที่แก้เสร็จแล้ว" กลับมาให้เรา
-    const updatedPatient = await Patient.findByIdAndUpdate(patientId, updateData, { new: true });
+    const updatedPatient = await Patient.findByIdAndUpdate(patientId, updateData, { returnDocument: 'after' });
     res.json(updatedPatient); // ส่งข้อมูลใหม่กลับไปให้ React
   } catch (error) {
     res.status(500).json({ message: "เกิดข้อผิดพลาดในการอัปเดตข้อมูล" });
