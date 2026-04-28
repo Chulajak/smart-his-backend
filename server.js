@@ -74,7 +74,75 @@ app.put('/api/patients/:id', async (req, res) => {
   }
 })
 
-// 7. สั่งให้เซิร์ฟเวอร์เปิดทำการ
+// 7. API สมัครสมาชิก (Register)
+app.post('/api/register', async (req, res) => {
+  try {
+    const { username, password, role } = req.body;
+
+    // เช็คก่อนว่าชื่อนี้มีคนใช้ไปหรือยัง?
+    const existingUser = await User.findOne({ username });
+    if (existingUser) {
+      return res.status(400).json({ message: "ชื่อผู้ใช้นี้มีในระบบแล้ว กรุณาใช้ชื่ออื่น" });
+    }
+
+    // บดรหัสผ่าน (Hashing) 
+    const salt = await bcrypt.genSalt(10); // genSalt(10) คือการสุ่มตัวอักษร ลงไป 10 รอบให้รหัสผ่านเดายากขึ้นไปอีก
+    const hashedPassword = await bcrypt.hash(password, salt);
+
+    // นำข้อมูลไปใส่แม่พิมพ์ User แล้วบันทึกลงDB
+    const newUser = new User({
+      username,
+      password: hashedPassword, // นำรหัสที่สุ่มไปบันทึก
+      role: role || 'nurse'
+    });
+
+    await newUser.save();
+    res.status(201).json({ message: "สมัครสมาชิกสำเร็จ!" });
+  } catch (error) {
+    res.status(500).json({ message: "เกิดข้อผิดพลาดในการสมัครสมาชิก" });
+  }
+})
+
+// 8. API เข้าสู่ระบบ (Login)
+app.post('/api/login', async (req, res) => {
+  try {
+    const { username, password } = req.body;
+
+    // ค้นหาผู้ใช้จากชื่อ username
+    const user = await User.findOne({ username });
+    if (!user) {
+      return res.status(400).json({ message: "ไม่พบชื่อผู้ใช้นี้ในระบบ" });
+    }
+
+    // ตรวจสอบรหัสผ่าน (compare รหัสที่พิมพ์มา กับ รหัสที่ถูก Hash ใน DB)
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
+      return res.status(400).json({ message: "รหัสผ่านไม่ถูกต้อง"});
+    }
+
+    // ถ้ารหัสถูก! สร้างบัตร VIP (JWT)
+    // เราจะแอบฝัง id และ role ลงไปในบัตรใบนี้ด้วย
+    const token = jwt.sign(
+      { id: user._id, role: user.role }, // ข้อมูลที่ฝัง (Payload)
+      process.env.JWT_SECRET, // ลายเซ็นลับ (จากไฟล์ .env)
+      { expiresIn: '8h' } // อายุของบัตร (เช่น 8 ชั่วโมง)
+    );
+
+    // ส่งบัตร VIP กลับไปให้ React นำไปใช้งานต่อ
+    res.json({
+      message: "เข้าสู่ระบบสำเร็จ!",
+      token: token,
+      user: {
+        username: user.username,
+        role: user.role
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ message: "เกิดข้อผิดพลาดในการเข้าสู่ระบบ" });
+  }
+})
+
+// 9. สั่งให้เซิร์ฟเวอร์เปิดทำการ
 app.listen(PORT, () => {
   console.log(`🚀 API Server เปิดทำงานแล้วที่ http://localhost:${PORT}`);
 });
