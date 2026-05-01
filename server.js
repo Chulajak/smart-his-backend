@@ -4,7 +4,8 @@ const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const Patient = require('./models/Patient');
-const User = require('./models/User')
+const User = require('./models/User');
+const verifyToken = require('./middleware/auth');
 require('dotenv').config();
 
 // 1. สร้างตัวจัดการเซิร์ฟเวอร์
@@ -28,7 +29,7 @@ app.get('/', (req, res) => {
 });
 
 // 3. API ดึงข้อมูลผู้ป่วยทั้งหมด (GET)
-app.get('/api/patients', async (req, res) => {
+app.get('/api/patients', verifyToken, async (req, res) => {
   try {
     const patients = await Patient.find(); // สั่งให้ไปหาข้อมูลทั้งหมดใน MongoDB
     res.json(patients); // ส่งกลับไปให้ React
@@ -38,7 +39,7 @@ app.get('/api/patients', async (req, res) => {
 }); 
 
 // 4. API เพิ่มข้อมูลผู้ป่วยใหม่ (POST)
-app.post('/api/patients', async (req, res) => {
+app.post('/api/patients', verifyToken, async (req, res) => {
   try {
     const newPatient = new Patient(req.body); // เอาข้อมูลที่ React ส่งมา (req.body) ไปใส่แม่พิมพ์
     const savedPatient = await newPatient.save(); // สั่งเซฟลง MongoDB
@@ -49,7 +50,7 @@ app.post('/api/patients', async (req, res) => {
 })
 
 // 5. API ลบข้อมูลผู้ป่วย (DELETE)
-app.delete('/api/patients/:id', async (req, res) => {
+app.delete('/api/patients/:id', verifyToken, async (req, res) => {
   try {
     const patientId = req.params.id; // รับรหัส _id ที่หน้าบ้านส่งมาผ่าน URL
     await Patient.findByIdAndDelete(patientId); // สั่ง Mongoose ให้ไปตามหาและลบทิ้ง
@@ -60,7 +61,7 @@ app.delete('/api/patients/:id', async (req, res) => {
 })
 
 // 6. API แก้ไขข้อมูลผู้ป่วย (PUT)
-app.put('/api/patients/:id', async (req, res) => {
+app.put('/api/patients/:id', verifyToken, async (req, res) => {
   try {
     const patientId = req.params.id; // ดึงรหัส _id จาก URL
     const updateData = req.body; // ดึงข้อมูลชุดใหม่ที่ส่งมาจาก React
