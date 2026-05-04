@@ -32,7 +32,9 @@ app.get("/", (req, res) => {
 // 3. API ดึงข้อมูลผู้ป่วยทั้งหมด (GET)
 app.get("/api/patients", verifyToken, async (req, res) => {
   try {
-    const { keyword } = req.query; // รับคำค้นหาที่อาจจะส่งมาจากหน้าเว็บ
+    // รับค่า keyword, หน้าปัจจุบัน (page) และ จำนวนที่อยากได้ต่อหน้า (limit)
+    // ถ้าหน้าเว็บไม่ได้ส่ง page มา ให้ถือว่าเป็นหน้า 1 และดึงมาแค่ 5 คนต่อหน้า
+    const { keyword, page = 1, limit = 5 } = req.query;
     let queryCondition = {}; // สร้างเงื่อนไขการค้นหา
 
     if (keyword) {
@@ -48,8 +50,21 @@ app.get("/api/patients", verifyToken, async (req, res) => {
       };
     }
 
-    const patients = await Patient.find(queryCondition).sort({ createdAt: -1 }); // สั่งค้นหาตามเงื่อนไข (ถ้าไม่มี keyword มันก็จะดึงมาทุกคนเหมือนเดิม)
-    res.json(patients); // ส่งกลับไปให้ React
+    const skipIndex = (parseInt(page) - 1) * parseInt(limit); // คำนวณการข้ามข้อมูล เช่น ถ้าอยู่หน้า 2 (2-1) * 5 = ต้องข้าม 5 คนแรกทิ้งไป
+    const patients = await Patient.find(queryCondition) // ดึงข้อมูลแบบ "จำกัดจำนวน" 
+      .sort({ createdAt: -1 })
+      .skip(skipIndex) // สั่งข้าม
+      .limit(parseInt(limit)); // สั่งจำกัด
+
+    const totalPateints = await Patient.countDocuments(queryCondition); // นับจำนวนคนไข้ "ทั้งหมด" ในฐานข้อมูล เพื่อเอาไปคำนวณว่ามีกี่หน้า
+    const totalpages = Math.ceil(totalPateints / parseInt(limit)); // ปัดเศษขึ้นเสมอ
+
+    // ส่งข้อมูลกลับไปแบบอัปเกรด (ส่งไปเป็นก้อน Object)
+    res.json({
+      data: patients, // รายชื่อคนไข้ (แค่ 5 คน)
+      currentPage: parseInt(page), // หน้าปัจจุบัน
+      totalPages: totalpages // จำนวนหน้าทั้งหมด
+    }); 
   } catch (error) {
     res.status(500).json({ message: "เกิดข้อผิดพลาดในการดึงข้อมูล" });
   }
