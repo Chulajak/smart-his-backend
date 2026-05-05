@@ -181,7 +181,26 @@ app.post("/api/login", async (req, res) => {
   }
 });
 
-// 9. สั่งให้เซิร์ฟเวอร์เปิดทำการ
+// 9. API สำหรับหน้า Dashboard สถิติภาพรวม
+app.get('/api/dashboard/stats', verifyToken, async (req, res) => {
+  try {
+    const totalPatients = await Patient.countDocuments(); // นับจำนวนผู้ป่วยทั้งหมด
+    const startOfMonth = new Date(); // ดึงวันที่ปัจจุบัน
+    startOfMonth.setDate(1);
+    startOfMonth.setHours(0, 0, 0, 0);
+    const newPatientsThisMonth = await Patient.countDocuments({ createdAt: { $gte: startOfMonth } });
+
+    // ส่งตัวเลขกลับไปให้หน้าบ้านวาดกราฟหรือการ์ด
+    res.json({
+      totalPatients,
+      newPatientsThisMonth
+    });
+  } catch (error) {
+    res.status(500).json({ message: "ไม่สามารถดึงข้อมูลสถิติได้" });
+  }
+})
+
+// 10. สั่งให้เซิร์ฟเวอร์เปิดทำการ
 app.listen(PORT, () => {
   console.log(`🚀 API Server เปิดทำงานแล้วที่ http://localhost:${PORT}`);
 });
